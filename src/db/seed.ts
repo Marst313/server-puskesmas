@@ -1,5 +1,5 @@
-import { db } from "./db";
-import { users, roles, medicines } from "./schema";
+import { db } from "./db.ts";
+import { users, roles, medicines } from "./schema.ts";
 import bcrypt from "bcrypt";
 
 async function seed() {

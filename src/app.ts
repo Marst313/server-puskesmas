@@ -11,10 +11,10 @@ import hpp from "hpp";
 import rateLimit from "express-rate-limit";
 
 // Routes
-import authRoutes from "./routes/auth.routes";
-import userRoutes from "./routes/user.routes";
-import medicineRoutes from "./routes/medicine.routes";
-import reminderRoutes from "./routes/reminder.routes";
+import authRoutes from "./routes/auth.routes.ts";
+import userRoutes from "./routes/user.routes.ts";
+import medicineRoutes from "./routes/medicine.routes.ts";
+import reminderRoutes from "./routes/reminder.routes.ts";
 import multer from "multer";
 
 dotenv.config();

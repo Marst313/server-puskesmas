@@ -1,9 +1,9 @@
 import { Request, Response } from "express";
 import { eq, sql } from "drizzle-orm";
 
-import { db } from "../db/db";
-import { medicines, reminders } from "../db/schema";
-import { sendError, sendSuccess } from "../utils/sendResponse";
+import { db } from "../db/db.ts";
+import { medicines, reminders } from "../db/schema.ts";
+import { sendError, sendSuccess } from "../utils/sendResponse.ts";
 
 // GET /api/reminders
 export const getAllReminders = async (_req: Request, res: Response) => {

@@ -1,13 +1,14 @@
 import { Request, Response } from "express";
-import { db } from "../db/db";
-import { medicines } from "../db/schema";
 import { eq } from "drizzle-orm";
-import { sendSuccess, sendError } from "../utils/sendResponse";
 import multer from "multer";
 import sharp from "sharp";
 import path from "path";
 import fs from "fs/promises";
 import { v4 as uuidv4 } from "uuid";
+
+import { sendSuccess, sendError } from "../utils/sendResponse.ts";
+import { medicines } from "../db/schema.ts";
+import { db } from "../db/db.ts";
 
 // Ensure upload directory exists
 const uploadDir = path.join(process.cwd(), "uploads");

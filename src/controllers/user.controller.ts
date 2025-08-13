@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
-import { db } from "../db/db";
-import { sessions, users } from "../db/schema";
-import { sendError, sendSuccess } from "../utils/sendResponse";
+import { db } from "../db/db.ts";
+import { sessions, users } from "../db/schema.ts";
+import { sendError, sendSuccess } from "../utils/sendResponse.ts";
 import { eq } from "drizzle-orm";
 
 // GET /api/users

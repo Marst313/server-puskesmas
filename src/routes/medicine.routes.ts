@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { getMedicines, getMedicineById, createMedicine, updateMedicine, deleteMedicine, uploadMedicineImage } from "../controllers/medicine.controller";
-import { authenticate, authorizeRole } from "../middlewares/auth.middleware";
+import { getMedicines, getMedicineById, createMedicine, updateMedicine, deleteMedicine, uploadMedicineImage } from "../controllers/medicine.controller.ts";
+import { authenticate, authorizeRole } from "../middlewares/auth.middleware.ts";
 
 const router = Router();
 

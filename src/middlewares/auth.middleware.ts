@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
-import { verifyJwt } from "../utils/jwt";
-import { sendError } from "../utils/sendResponse";
+import { verifyJwt } from "../utils/jwt.ts";
+import { sendError } from "../utils/sendResponse.ts";
 
 export interface AuthRequest extends Request {
   user?: { id: number; role: number };
