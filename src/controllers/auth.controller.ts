@@ -4,12 +4,12 @@ import { and, eq } from "drizzle-orm";
 import bcrypt from "bcrypt";
 
 // db
-import { sessions, users } from "../db/schema.ts";
-import { db } from "../db/db.ts";
+import { sessions, users } from "../db/schema.js";
+import { db } from "../db/db.js";
 
 // utils
-import { signJwt } from "../utils/jwt.ts";
-import { sendSuccess, sendError } from "../utils/sendResponse.ts";
+import { signJwt } from "../utils/jwt.js";
+import { sendSuccess, sendError } from "../utils/sendResponse.js";
 
 // POST /api/auth/register
 export const register = async (req: Request, res: Response) => {

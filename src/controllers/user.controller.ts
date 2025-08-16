@@ -1,8 +1,9 @@
 import { Request, Response } from "express";
-import { db } from "../db/db.ts";
-import { sessions, users } from "../db/schema.ts";
-import { sendError, sendSuccess } from "../utils/sendResponse.ts";
 import { eq } from "drizzle-orm";
+
+import { db } from "../db/db.js";
+import { sessions, users } from "../db/schema.js";
+import { sendError, sendSuccess } from "../utils/sendResponse.js";
 
 // GET /api/users
 export const getAllUsers = async (_req: Request, res: Response) => {

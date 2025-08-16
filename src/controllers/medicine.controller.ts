@@ -6,9 +6,9 @@ import path from "path";
 import fs from "fs/promises";
 import { v4 as uuidv4 } from "uuid";
 
-import { sendSuccess, sendError } from "../utils/sendResponse.ts";
-import { medicines } from "../db/schema.ts";
-import { db } from "../db/db.ts";
+import { sendSuccess, sendError } from "../utils/sendResponse.js";
+import { medicines } from "../db/schema.js";
+import { db } from "../db/db.js";
 
 // Ensure upload directory exists
 const uploadDir = path.join(process.cwd(), "uploads");
