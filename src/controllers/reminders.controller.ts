@@ -73,15 +73,35 @@ export const createReminder = async (req: Request, res: Response) => {
       return sendError(res, "Missing fields", 400);
     }
 
-    const data = await db.insert(reminders).values({
+    const [newReminder] = await db.insert(reminders).values({
       userId,
       medId,
       quantity: quantity || 1,
       time,
       beforeMeal:beforeMeal || false,
-    });
+    }).returning();
+  
+    const reminderWithMedicine = await db
+      .select({
+        id: reminders.id,
+        userId: reminders.userId,
+        medId: reminders.medId,
+        quantity: reminders.quantity,
+        time: reminders.time,
+        beforeMeal: reminders.beforeMeal,
+        createdAt: reminders.createdAt,
+        medicine: {
+          id: medicines.id,
+          name: medicines.name,
+        }
+      })
+      .from(reminders)
+      .leftJoin(medicines, eq(reminders.medId, medicines.id))
+      .where(eq(reminders.id, newReminder.id))
+      .limit(1);
 
-    return sendSuccess(res, "Reminder created", data);
+
+    return sendSuccess(res, "Reminder created", reminderWithMedicine[0]);
   } catch (error) {
 
     console.log(error)

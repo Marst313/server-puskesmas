@@ -28,12 +28,6 @@ const upload = multer({
     fileSize: 10 * 1024 * 1024, // 10MB limit
   },
   fileFilter: (req, file, cb) => {
-    console.log('File received:', {
-      originalname: file.originalname,
-      mimetype: file.mimetype,
-      fieldname: file.fieldname
-    });
-
     const allowedMimeTypes = [
       'image/jpeg',
       'image/jpg', 
@@ -46,12 +40,6 @@ const upload = multer({
     
     const hasValidMimeType = allowedMimeTypes.includes(file.mimetype);
     const hasValidExtension = allowedExtensions.test(file.originalname);
-
-    console.log('Validation result:', {
-      hasValidMimeType,
-      hasValidExtension,
-      mimetype: file.mimetype
-    });
 
     if (hasValidMimeType && hasValidExtension) {
       return cb(null, true);
@@ -194,9 +182,7 @@ export const createMedicine = async (req: Request, res: Response) => {
     
     // Process image if uploaded
     if (imageFile) {
-      console.log('Processing image:', imageFile.originalname);
       medicineImageFilename = await processAndSaveImage(imageFile.buffer, imageFile.originalname);
-      console.log('Image saved as:', medicineImageFilename);
     }
 
     const created = await db.insert(medicines).values({ 
@@ -251,7 +237,6 @@ export const updateMedicine = async (req: Request, res: Response) => {
       
       // Save new compressed image
       medicineImageFilename = await processAndSaveImage(imageFile.buffer, imageFile.originalname);
-      console.log('New image saved as:', medicineImageFilename);
     }
 
     // Prepare update data
