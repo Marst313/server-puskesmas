@@ -213,8 +213,6 @@ export const getMedicineHistory = async (req: Request, res: Response) => {
       return sendError(res, "Invalid user ID", 400);
     }
 
-    // Calculate date range
-    const endDate = new Date();
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
@@ -233,7 +231,6 @@ export const getMedicineHistory = async (req: Request, res: Response) => {
       .from(reminders)
       .leftJoin(medicines, eq(reminders.medId, medicines.id))
       .where(eq(reminders.userId, userId));
-      // Note: You might want to add date filtering here based on lastTakenAt or createdAt
 
     return sendSuccess(res, "Medicine history retrieved", data);
   } catch (error) {
