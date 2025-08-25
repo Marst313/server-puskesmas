@@ -8,8 +8,20 @@ import { sessions, users } from "../db/schema.js";
 import { db } from "../db/db.js";
 
 // utils
-import { signJwt } from "../utils/jwt.js";
+import { signJwt, verifyJwt } from "../utils/jwt.js";
 import { sendSuccess, sendError } from "../utils/sendResponse.js";
+
+
+// Session duration (24 hours)
+const SESSION_DURATION_HOURS = 24;
+
+// Helper function to calculate expiry time
+const getExpiryTime = (): Date => {
+  const now = new Date();
+  now.setHours(now.getHours() + SESSION_DURATION_HOURS);
+  return now;
+};
+
 
 // POST /api/auth/register
 export const register = async (req: Request, res: Response) => {
@@ -75,6 +87,12 @@ export const login = async (req: Request, res: Response) => {
     }
 
     const token = signJwt({ id: user[0].id, role: user[0].rolesId });
+    const expiresAt = getExpiryTime();
+
+     await db
+      .update(sessions)
+      .set({ isActive: false, logoutAt: new Date() })
+      .where(eq(sessions.userId, user[0].id));
 
 // Cek apakah ada session sebelumnya
 const existingSession = await db
@@ -83,30 +101,17 @@ const existingSession = await db
   .where(eq(sessions.userId, user[0].id))
   .limit(1);
 
-// Jika ada, update
-if (existingSession.length > 0) {
-  await db
-    .update(sessions)
-    .set({
-      token,
-      isActive: true,
-      loginAt: new Date(),
-      logoutAt: null,
-    })
-    .where(eq(sessions.userId, user[0].id));
-} else {
-  // Jika belum ada, insert baru
   await db.insert(sessions).values({
-    token,
-    userId: user[0].id,
-    isActive: true,
-    loginAt: new Date(),
-  });
-}
-
+      token,
+      userId: user[0].id,
+      isActive: true,
+      expiresAt,
+      loginAt: new Date(),
+    });
 
     return sendSuccess(res, "Login berhasil", {
       token,
+      expiresAt: expiresAt.toISOString(),
       user: {
         id: user[0].id,
         name: user[0].name,
@@ -164,5 +169,144 @@ export const getProfile = async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Get profile error:", error);
     return sendError(res, "Gagal mengambil profil.", 500);
+  }
+};
+
+// GET /api/auth/verify-session
+export const verifySession = async (req: Request, res: Response) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.split(" ")[1];
+
+    if (!token) {
+      return sendError(res, "Token tidak ditemukan.", 401);
+    }
+
+    const decoded:any = verifyJwt(token);
+    if (!decoded) {
+      return sendError(res, "Token tidak valid.", 401);
+    }
+
+    // Cek session di database
+    const sessionData = await db
+      .select({
+        session: sessions,
+        user: {
+          id: users.id,
+          name: users.name,
+          rolesId: users.rolesId,
+        },
+      })
+      .from(sessions)
+      .innerJoin(users, eq(sessions.userId, users.id))
+      .where(
+        and(
+          eq(sessions.token, token),
+          eq(sessions.isActive, true),
+          eq(sessions.userId, decoded.id)
+        )
+      )
+      .limit(1);
+
+    if (!sessionData[0]) {
+      return sendError(res, "Session tidak ditemukan atau tidak aktif.", 401);
+    }
+
+    const { session, user } = sessionData[0];
+
+    // Cek apakah session sudah expired
+    if (session.expiresAt <= new Date()) {
+      await db
+        .update(sessions)
+        .set({ isActive: false, logoutAt: new Date() })
+        .where(eq(sessions.id, session.id));
+      
+      return sendError(res, "Session sudah kadaluarsa.", 401);
+    }
+
+    const timeUntilExpiry = session.expiresAt.getTime() - new Date().getTime();
+
+    return sendSuccess(res, "Session valid", {
+      user,
+      expiresAt: session.expiresAt.toISOString(),
+      timeUntilExpiry: Math.floor(timeUntilExpiry / 1000), // dalam detik
+    });
+  } catch (error) {
+    console.error("Verify session error:", error);
+    return sendError(res, "Gagal memverifikasi session.", 500);
+  }
+};
+
+
+// POST /api/auth/refresh
+export const refreshSession = async (req: Request, res: Response) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.split(" ")[1];
+
+    if (!token) {
+      return sendError(res, "Token tidak ditemukan.", 401);
+    }
+
+    // Verify JWT token
+    const decoded:any = verifyJwt(token);
+    if (!decoded) {
+      return sendError(res, "Token tidak valid.", 401);
+    }
+
+    // Cek session di database
+    const existingSession = await db
+      .select()
+      .from(sessions)
+      .where(
+        and(
+          eq(sessions.token, token),
+          eq(sessions.userId, decoded.id),
+          eq(sessions.isActive, true)
+        )
+      )
+      .limit(1);
+
+    if (!existingSession[0]) {
+      return sendError(res, "Session tidak ditemukan atau sudah tidak aktif.", 401);
+    }
+
+    // Cek apakah session sudah expired
+    const now = new Date();
+    if (existingSession[0].expiresAt <= now) {
+      // Set session sebagai tidak aktif
+      await db
+        .update(sessions)
+        .set({ isActive: false, logoutAt: now })
+        .where(eq(sessions.id, existingSession[0].id));
+      
+      return sendError(res, "Session sudah kadaluarsa.", 401);
+    }
+
+    // Generate new token dan extend expiry time
+    const newToken = signJwt({ id: decoded.id, role: decoded.role });
+    const newExpiresAt = getExpiryTime();
+
+    // Update session dengan token baru dan waktu kadaluarsa baru
+    await db
+      .update(sessions)
+      .set({
+        token: newToken,
+        expiresAt: newExpiresAt,
+        lastRefreshAt: now,
+      })
+      .where(eq(sessions.id, existingSession[0].id));
+
+    return sendSuccess(res, "Session berhasil diperpanjang", {
+      token: newToken,
+      expiresAt: newExpiresAt.toISOString(),
+      user: {
+        id: decoded.id,
+        role: decoded.role,
+      },
+    });
+  } catch (error) {
+    console.error("Refresh session error:", error);
+    return sendError(res, "Gagal memperpanjang session.", 500);
   }
 };

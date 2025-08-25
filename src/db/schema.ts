@@ -21,15 +21,18 @@ export const users = pgTable("users", {
 // Sessions
 export const sessions = pgTable("sessions", {
   id: serial("id").primaryKey(),
-  token: text("token"), 
-  createdAt: date("created_at").defaultNow(),
+  token: text("token").notNull(),
   userId: integer("user_id")
-  .notNull()
-  .references(() => users.id),
+    .notNull()
+    .references(() => users.id),
   isActive: boolean("is_active").default(true),
+  expiresAt: timestamp("expires_at").notNull(), 
+  createdAt: timestamp("created_at").defaultNow(),
   loginAt: timestamp("login_at").defaultNow(),
   logoutAt: timestamp("logout_at"),
+  lastRefreshAt: timestamp("last_refresh_at"),
 });
+
 
 // Medicines
 export const medicines = pgTable("medicines", {
