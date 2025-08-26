@@ -42,26 +42,37 @@ export const getRemindersByUser = async (req: Request, res: Response) => {
       .where(eq(reminders.userId, userId));
       
     const today = new Date().toDateString();
+    console.log("Today:", today);
 
-    const processedData = data.map(item => {
-      let effectiveTimesTaken = item.timesTaken;
-      
+    for (let item of data) {
       if (item.lastTakenAt) {
         const lastTakenDate = new Date(item.lastTakenAt).toDateString();
+        console.log(`Checking reminder ${item.id}: lastTaken=${lastTakenDate}, today=${today}`);
+        
         if (lastTakenDate !== today) {
-          effectiveTimesTaken = 0;
+          console.log(`Resetting reminder ${item.id} in database`);
+          
+          await db
+            .update(reminders)
+            .set({ 
+              timesTaken: 0,
+              lastTakenAt: null
+            })
+            .where(eq(reminders.id, item.id));
+
+          item.timesTaken = 0;
+          item.lastTakenAt = null;
         }
       }
+    }
 
-      return {
-        ...item,
-        timesTaken: effectiveTimesTaken
-      };
-    });
+    console.log("Final data after reset:", data.map(item => ({
+      id: item.id,
+      timesTaken: item.timesTaken,
+      lastTakenAt: item.lastTakenAt
+    })));
 
-    console.log(processedData)
-
-    return sendSuccess(res, "Reminders fetched", processedData);
+    return sendSuccess(res, "Reminders fetched", data);
   } catch (error) {
     console.log(error)
     return sendError(res, "Failed to fetch reminders");
