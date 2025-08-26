@@ -41,21 +41,46 @@ export const getRemindersByUser = async (req: Request, res: Response) => {
       .leftJoin(medicines, eq(reminders.medId, medicines.id))
       .where(eq(reminders.userId, userId));
       
-      const today = new Date().toDateString();
+    const today = new Date().toDateString();
 
-      for (let item of data) {
-      if (!item.lastTakenAt) continue;
+    for (let item of data) {
+      console.log(`Processing reminder ${item.id}:`, {
+        lastTakenAt: item.lastTakenAt,
+        timesTaken: item.timesTaken
+      });
 
-      const lastTakenDate = new Date(item.lastTakenAt).toDateString();
-      if (lastTakenDate !== today && item.timesTaken > 0) {
+      let shouldReset = false;
+      
+      if (item.lastTakenAt) {
+        const lastTakenDate = new Date(item.lastTakenAt).toDateString();
+        console.log(`Last taken date: ${lastTakenDate}, Today: ${today}`); // Debug log
+        
+        if (lastTakenDate !== today && item.timesTaken > 0) {
+          shouldReset = true;
+        }
+      }
+
+      if (shouldReset) {
+        console.log(`Resetting reminder ${item.id} from ${item.timesTaken} to 0`); // Debug log
+        
         await db
           .update(reminders)
-          .set({ timesTaken: 0 })
+          .set({ 
+            timesTaken: 0,
+            lastTakenAt: null
+          })
           .where(eq(reminders.id, item.id));
 
         item.timesTaken = 0;
+        item.lastTakenAt = null;
       }
     }
+
+    console.log("Final data:", data.map(item => ({
+      id: item.id,
+      timesTaken: item.timesTaken,
+      quantity: item.quantity
+    })));
 
     return sendSuccess(res, "Reminders fetched", data);
   } catch (error) {
@@ -130,41 +155,6 @@ export const deleteReminder = async (req: Request, res: Response) => {
   }
 };
 
-// PATCH /api/reminders/:id/reset
-export const resetReminderTimesTaken = async (req: Request, res: Response) => {
-  try {
-    const reminderId = parseInt(req.params.id);
-
-    if (isNaN(reminderId)) {
-      return sendError(res, "Invalid reminder ID", 400);
-    }
-
-    const reminder = await db.query.reminders.findFirst({
-      where: eq(reminders.id, reminderId),
-    });
-
-    if (!reminder) {
-      return sendError(res, "Reminder not found", 404);
-    }
-
-    await db
-      .update(reminders)
-      .set({
-        timesTaken: 0,
-        lastTakenAt: null,
-      })
-      .where(eq(reminders.id, reminderId));
-
-    return sendSuccess(res, "Reminder reset successfully", {
-      id: reminderId,
-      timesTaken: 0,
-      lastTakenAt: null,
-    });
-  } catch (error) {
-    console.error(error);
-    return sendError(res, "Failed to reset reminder");
-  }
-};
 
 // PATCH /api/reminders/:id/times-taken
 export const updateReminderTimesTaken = async (req: Request, res: Response) => {
