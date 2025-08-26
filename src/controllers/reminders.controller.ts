@@ -43,46 +43,23 @@ export const getRemindersByUser = async (req: Request, res: Response) => {
       
     const today = new Date().toDateString();
 
-    for (let item of data) {
-      console.log(`Processing reminder ${item.id}:`, {
-        lastTakenAt: item.lastTakenAt,
-        timesTaken: item.timesTaken
-      });
-
-      let shouldReset = false;
+    const processedData = data.map(item => {
+      let effectiveTimesTaken = item.timesTaken;
       
       if (item.lastTakenAt) {
         const lastTakenDate = new Date(item.lastTakenAt).toDateString();
-        console.log(`Last taken date: ${lastTakenDate}, Today: ${today}`); // Debug log
-        
-        if (lastTakenDate !== today && item.timesTaken > 0) {
-          shouldReset = true;
+        if (lastTakenDate !== today) {
+          effectiveTimesTaken = 0;
         }
       }
 
-      if (shouldReset) {
-        console.log(`Resetting reminder ${item.id} from ${item.timesTaken} to 0`); // Debug log
-        
-        await db
-          .update(reminders)
-          .set({ 
-            timesTaken: 0,
-            lastTakenAt: null
-          })
-          .where(eq(reminders.id, item.id));
+      return {
+        ...item,
+        timesTaken: effectiveTimesTaken
+      };
+    });
 
-        item.timesTaken = 0;
-        item.lastTakenAt = null;
-      }
-    }
-
-    console.log("Final data:", data.map(item => ({
-      id: item.id,
-      timesTaken: item.timesTaken,
-      quantity: item.quantity
-    })));
-
-    return sendSuccess(res, "Reminders fetched", data);
+    return sendSuccess(res, "Reminders fetched", processedData);
   } catch (error) {
     console.log(error)
     return sendError(res, "Failed to fetch reminders");
