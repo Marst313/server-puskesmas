@@ -59,6 +59,8 @@ export const getRemindersByUser = async (req: Request, res: Response) => {
       };
     });
 
+    console.log(processedData)
+
     return sendSuccess(res, "Reminders fetched", processedData);
   } catch (error) {
     console.log(error)
