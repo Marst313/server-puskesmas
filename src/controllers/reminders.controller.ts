@@ -82,20 +82,42 @@ export const getRemindersByUser = async (req: Request, res: Response) => {
 // POST /api/reminders/
 export const createReminder = async (req: Request, res: Response) => {
   try {
-    const { medId, time,  beforeMeal, userId,quantity } = req.body;
+    const { medId, time, beforeMeal, userId, quantity } = req.body;
 
     if (!medId || !time || !userId) {
       return sendError(res, "Missing fields", 400);
     }
 
-    const [newReminder] = await db.insert(reminders).values({
-      userId,
-      medId,
-      quantity: quantity || 1,
-      time,
-      beforeMeal:beforeMeal || false,
-    }).returning();
-  
+    const medicine = await db.query.medicines.findFirst({
+      where: eq(medicines.id, medId),
+    });
+
+    if (!medicine) {
+      return sendError(res, "Medicine not found", 404);
+    }
+
+    if (medicine.stock < (quantity || 1)) {
+      return sendError(res, "Stock not enough", 400);
+    }
+
+    const [newReminder] = await db
+      .insert(reminders)
+      .values({
+        userId,
+        medId,
+        quantity: quantity || 1,
+        time,
+        beforeMeal: beforeMeal || false,
+      })
+      .returning();
+
+    await db
+      .update(medicines)
+      .set({
+        stock: medicine.stock - (quantity || 1),
+      })
+      .where(eq(medicines.id, medId));
+
     const reminderWithMedicine = await db
       .select({
         id: reminders.id,
@@ -108,18 +130,17 @@ export const createReminder = async (req: Request, res: Response) => {
         medicine: {
           id: medicines.id,
           name: medicines.name,
-        }
+          stock: medicines.stock,
+        },
       })
       .from(reminders)
       .leftJoin(medicines, eq(reminders.medId, medicines.id))
       .where(eq(reminders.id, newReminder.id))
       .limit(1);
 
-
-    return sendSuccess(res, "Reminder created", reminderWithMedicine[0]);
+    return sendSuccess(res, "Reminder created & stock updated", reminderWithMedicine[0]);
   } catch (error) {
-
-    console.log(error)
+    console.log(error);
     return sendError(res, "Failed to create reminder");
   }
 };
