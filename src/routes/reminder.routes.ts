@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authenticate } from "../middlewares/auth.middleware.js";
-import { createReminder, deleteReminder, getAllReminders, getMedicineHistory, getRemindersByUser, updateReminderTimesTaken } from "../controllers/reminders.controller.js";
+import { createReminder, deleteReminder, getAllReminders, getMedicineHistory, getRemindersByUser, updateReminder, updateReminderTimesTaken } from "../controllers/reminders.controller.js";
 
 const router = Router();
 
@@ -8,6 +8,7 @@ router.use(authenticate);
 
 router.get("/history/:userId", getMedicineHistory);
 router.post("/", createReminder);
+router.patch("/reminders/:id", updateReminder);
 router.delete("/:id", deleteReminder);
 router.post("/user", getRemindersByUser);
 router.get("/users", getAllReminders);

@@ -218,3 +218,36 @@ export const getMedicineHistory = async (req: Request, res: Response) => {
     return sendError(res, "Failed to fetch medicine history");
   }
 };
+
+// PATCH /api/reminders/:id
+export const updateReminder = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { userId, medId, timesTaken, quantity, beforeMeal } = req.body;
+
+    const existing = await db.query.reminders.findFirst({
+      where: eq(reminders.id, Number(id)),
+    });
+
+    if (!existing) {
+      return sendError(res, "Reminder not found", 404);
+    }
+
+    const updated = await db
+      .update(reminders)
+      .set({
+        userId: userId ?? existing.userId,
+        medId: medId ?? existing.medId,
+        timesTaken: timesTaken ?? existing.timesTaken,
+        quantity: quantity ?? existing.quantity,
+        beforeMeal: beforeMeal ?? existing.beforeMeal,
+      })
+      .where(eq(reminders.id, Number(id)))
+      .returning();
+
+    return sendSuccess(res, "Reminder updated", updated[0]);
+  } catch (error) {
+    console.error(error);
+    return sendError(res, "Failed to update reminder", 500);
+  }
+};
