@@ -8,7 +8,7 @@ router.use(authenticate);
 
 router.get("/history/:userId", getMedicineHistory);
 router.post("/", createReminder);
-router.patch("/reminders/:id", updateReminder);
+router.patch("/:id", updateReminder);
 router.delete("/:id", deleteReminder);
 router.post("/user", getRemindersByUser);
 router.get("/users", getAllReminders);
